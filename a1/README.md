@@ -11,6 +11,6 @@ On one terminal, type "python myvlserver.py" or "python3 myvlserver.py" based on
 
 Type the message on client and wait for server to reply. Client process will automatically close, but server will continue running until manually closed.
 
-![myvlserver.py terminal example](a1/terminal myvlserver.py example.png)
+![myvlserver.py terminal example](a1/terminal%20myvlserver.py%20example.png)
 
 ![myvlclient.py terminal example](terminal myvlclient.py example.png)
