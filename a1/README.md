@@ -10,3 +10,7 @@ Open two terminals
 On one terminal, type "python myvlserver.py" or "python3 myvlserver.py" based on current python version to start server. Next, open a second terminal and type "python myvlclient.py" or "python3 myvlclient.py" to open client side. Server and client must be on different terminals and server must be opened first. 
 
 Type the message on client and wait for server to reply. Client process will automatically close, but server will continue running until manually closed.
+
+![myvlserver.py terminal example][a1/terminal myvlclient.py example.png]
+
+![myvlclient.py terminal example][a1/terminal myvlclient.py example.png]
