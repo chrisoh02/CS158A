@@ -13,4 +13,4 @@ Type the message on client and wait for server to reply. Client process will aut
 
 ![myvlserver.py terminal example](terminal_myvlserver_example.png)
 
-![myvlclient.py terminal example](terminal myvlclient.py example.png)
+![myvlclient.py terminal example](terminal_myvlclient_example.png)
