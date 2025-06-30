@@ -11,3 +11,11 @@ Type messages for each client, and type 'exit' to disconnect the client from the
 Manually terminate the server process by entering Control + C in the server terminal.
 
 ![Server Example](server_example.png)
+
+![Client Example](client_example_1.png)
+
+![Client Example](client_example_2.png)
+
+![Client Example](client_example_3.png)
+
+
