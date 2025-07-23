@@ -1,0 +1,11 @@
+Sent: uuid=03231c30-60f0-437b-af14-34699c67824c, flag=0
+Received: uuid=49bf2923-546f-42b9-aaa2-0ec173c375bb, flag=0, greater, 0
+Sent: uuid=49bf2923-546f-42b9-aaa2-0ec173c375bb, flag=0
+Received: uuid=a560cc6b-5a80-493c-890d-4996bb8ed7da, flag=0, greater, 0
+Sent: uuid=a560cc6b-5a80-493c-890d-4996bb8ed7da, flag=0
+Received: uuid=a560cc6b-5a80-493c-890d-4996bb8ed7da, flag=0, greater, 0
+Sent: uuid=a560cc6b-5a80-493c-890d-4996bb8ed7da, flag=0
+Received: uuid=a560cc6b-5a80-493c-890d-4996bb8ed7da, flag=0, greater, 0
+Sent: uuid=a560cc6b-5a80-493c-890d-4996bb8ed7da, flag=0
+Received: uuid=a560cc6b-5a80-493c-890d-4996bb8ed7da, flag=1, greater, 1
+Leader's uuid=a560cc6b-5a80-493c-890d-4996bb8ed7da
