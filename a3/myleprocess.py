@@ -3,7 +3,7 @@ import threading
 import uuid
 import json
 import time
-
+import sys
 
 class Node:
     def __init__(self, sip, sp, cip, cp, log_name):
@@ -124,9 +124,8 @@ class Message:
         self.uuid = uuid
         self.flag = flag
 
-    def elected(self, leader):
+    def elected(self):
         self.flag = 1
-        self.uuid = leader
 
     def serialize(self):
         return {"uuid": str(self.uuid), "flag": int(self.flag)}
@@ -145,6 +144,8 @@ def read_config(filename='config.txt'):
     clientIP = client[0]
     clientPort = int(client[1])
     return serverIP, serverPort, clientIP, clientPort
+
+
 
 
 sip, sp, cip, cp = read_config('config1.txt')
