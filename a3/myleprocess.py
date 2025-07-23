@@ -1,80 +1,153 @@
 from socket import *
-import pickle
 import threading
 import uuid
+import json
+import time
 
 
 class Node:
-    def __init__(self, port, serverPort, host='localhost'):
-        self.host = host
-        self.port = port
+    def __init__(self, sip, sp, cip, cp, log_name):
+        self.ip = sip
+        self.port = sp
+        self.next_ip = cip
+        self.next_port = cp
+        self.candidate = Message()
+        self.server_socket = socket(AF_INET, SOCK_STREAM)
+        self.client_socket = None
+        self.log = open(log_name, 'w')      # log file
         self.uuid = uuid.uuid4()
-        self.next = serverPort
-        self.server_thread = threading.Thread(target=self.server)
-
-    def sendMessage(self, message):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect(self.next)
-                s.send(pickle.dump(message))
-        except Exception as e:
-            print(f"{self.port}: Error {e}")
-
-    def receiveMessage(self, message):
-        if message.flag == 0:
-            if message.uuid > self.uuid:  # pass along vote
-                self.sendMessage(message)
-            elif message.uuid < self.uuid:  # vote for self
-                self.sendMessage(Message(self.uuid))
-            else:  # declare that this node has been elected
-                self.sendMessage(Message(self.uuid, 1))
-        else:  # flag == 0, leader elected
-            if message.uuid != self.uuid:
-                self.sendMessage(message)
+        self.shutdown_event = threading.Event()
 
     def start(self):
-        self.server_thread.start()
+        self.setup_server()
+        self.connect_to_next()
+        print("started")
 
-    def server(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(self.host, self.port)
-            s.listen(1)
-            self.start
+        self.sendMessage(self.candidate.serialize())
+        self.log_sent()
+        print("sent initial message")
 
-    def print(self):
-        print(self.host, " ", self.port, " ", self.next)
+        listening = threading(target=self.listen)
+        listening.start()
+
+        try:
+            while listening.is_alive():
+                listening.join()
+        finally:
+            self.shutdown_event.set()
+            self.finish()
+            listening.join()
+
+
+    def setup_server(self):
+        self.server_socket.bind((self.ip, self.port))
+        self.server_socket.listen(2)
+
+    def connect_to_next(self):
+        while True:
+            try:
+                self.client_socket = socket(AF_INET, SOCK_STREAM)
+                self.client_socket.connect((self.next_ip, self.next_port))
+                break
+            except Exception:
+                self.client_socket.close()
+                time.sleep(2)
+
+    def sendMessage(self, message_dict_form):
+        message = json.dumps(message_dict_form) + "\n"
+        self.client_socket.send(message.encode())
+
+    def handleMessage(self, message):
+        if message.uuid > self.uuid:  # pass along vote
+            self.candidate = message
+            self.log_received(message, 'greater')
+            self.sendMessage(self.candidate.serialize())
+            self.log_sent()
+        elif message.uuid < self.uuid:  # vote for self
+            self.sendMessage(self.candidate.serialize())
+            self.log_received(message, 'smaller')
+        else:  # declare that this node has been elected
+            self.candidate.elected()
+            self.log_received(message, 'equal')
+            self.log.write(f'{self.candidate.uuid} has been elected leader.\n')
+            self.sendMessage(self.candidate.serialize())
+            self.log_sent()
+
+
+    def listen(self):
+        connection = None
+        try:
+            connection, _ = self.server_socket.accept()
+            connection.settimeout(2)
+            buffer = ''
+
+            while not self.shutdown_event.is_set() and self.candidate.flag == 0:
+                try:
+                    data = connection.recv(1024)
+                    if not data:
+                        break
+                    buffer = buffer + data.decode()
+
+                    while '\n' in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        if not line.strip():
+                            continue
+
+                        received_message = Message.deserialize(json.loads(line))
+                        self.handleMessage(received_message)
+                except timeout:
+                    continue
+        except Exception as e:
+            print(f'Error while listening: {e}]')
+        finally:
+            if connection:
+                connection.close()
+
+    def log_sent(self):
+        self.log.write(f'Sent: uuid={self.candidate.uuid}, flag={self.candidate.flag}\n')
+
+    def log_received(self, message, comparison):
+        self.log.write(f'Received: uuid={message.uuid}, flag={message.flag}, {comparison}, {self.candidate.flag}\n')
+        if self.candidate.flag == 1:
+            self.log.write(f'Leader\'s uuid={message.uuid}\n')
+
+    def finish(self):
+        if self.server_socket:
+            self.server_socket.close()
+        if self.client_socket:
+            self.client_socket.close()
+        self.log.close()
 
 
 class Message:
-    def __init__(self, node_id, flag=0):
-        self.uuid = node_id  # vote
-        self.flag = flag  # 0 = election, 1 = leader chosen
+    def __init__(self, uuid=uuid.uuid4(), flag=0):
+        self.uuid = uuid
+        self.flag = flag
 
-    def elected(self):
+    def elected(self, leader):
         self.flag = 1
+        self.uuid = leader
+
+    def serialize(self):
+        return {"uuid": str(self.uuid), "flag": int(self.flag)}
+
+    @classmethod
+    def deserialize(cls, data):
+        return cls(uuid=uuid.UUID(data['uuid']), flag=data['flag'])
 
 
-def read_config(file):
-    addrs = []
-    with open(file, 'r') as f:
-        for line in f:
-            addr = line.strip().split(',')
-            addr[1] = int(addr[1])
-            addrs.append(addr)
-    nodes = [(Node(addrs[0][1], addrs[-1][1], addrs[0][0]))]
-    for i in range(len(addrs) - 1, 0, -1):
-        nodes.append(Node(addrs[i][1], addrs[i - 1][1], addrs[i][0]))
-    return nodes
+def read_config(filename='config.txt'):
+    with open(filename, 'r') as f:
+        server = f.readline().strip().split(',')
+        client = f.readline().strip().split(',')
+    serverIP = server[0]
+    serverPort = int(server[1])
+    clientIP = client[0]
+    clientPort = int(client[1])
+    return serverIP, serverPort, clientIP, clientPort
 
 
-def run():
-    config = read_config('config.txt')
-
-
-run()
-
-
-
-
-
-
+sip, sp, cip, cp = read_config('config1.txt')
+node = Node(sip, sp, cip, cp, 'log1.txt')
+node.start()
+print('done')
