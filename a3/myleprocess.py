@@ -11,11 +11,11 @@ class Node:
         self.port = sp
         self.next_ip = cip
         self.next_port = cp
-        self.candidate = Message()
         self.server_socket = socket(AF_INET, SOCK_STREAM)
         self.client_socket = None
         self.log = open(log_name, 'w')      # log file
         self.uuid = uuid.uuid4()
+        self.candidate = Message(self.uuid, 0)
         self.shutdown_event = threading.Event()
 
     def start(self):
@@ -27,7 +27,7 @@ class Node:
         self.log_sent()
         print("sent initial message")
 
-        listening = threading(target=self.listen)
+        listening = threading.Thread(target=self.listen)
         listening.start()
 
         try:
